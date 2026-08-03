@@ -1,0 +1,9 @@
+# 只發布 index.html，其他一律不上傳
+*.bat
+*.txt
+*.csv
+*.json
+*.zip
+Thumbs.db
+desktop.ini
+.DS_Store
