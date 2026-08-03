@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 公開但不宣傳：搜尋引擎不收錄,只有拿到網址的人進得來 -->
+<meta name="robots" content="noindex, nofollow">
 <title>旅程總覽 · Travel Planner（多行程）</title>
 <style>body{margin:0}</style>
 </head>
@@ -249,6 +251,14 @@
   footer b{color:var(--pri-deep)}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--pri-deep);color:#fff;padding:11px 18px;border-radius:12px;font-weight:700;font-size:.9rem;opacity:0;transition:.25s;z-index:80;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.3)}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* 手機：連按不要被當成「雙擊放大」。
+     計算機按 222、行李連點好幾個項目都會中。
+     manipulation 只關掉雙擊縮放,雙指捏合和捲動照常 */
+  button,select,input,textarea,
+  .pk-item,.pk-tag,.titem.ed,.xp,.tc-top,.sp-part,.mem-chip,
+  ul.li .cb,.tc-mi .cb,.ph-cell,.dnum2,.pk-head{touch-action:manipulation}
+  .calc-pad button{user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
 
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -776,7 +786,7 @@ footer{position:relative;z-index:1}
       <button class="btn ghost sm" id="bkImport">⬆️ 讀取備份檔</button>
       <input type="file" id="bkFile" accept="application/json,.json" style="display:none">
     </div>
-    <p class="tp-note">換手機／換瀏覽器看不到資料時，用備份檔搬過去。</p>
+    <p class="tp-note" id="bkStat">換手機／換瀏覽器看不到資料時，用備份檔搬過去。</p>
     <div class="tp-data2">
       <button class="tp-link danger" id="clearAll">✕ 全部清空</button>
     </div>
@@ -1080,6 +1090,7 @@ footer{position:relative;z-index:1}
     if(!ROOT.tTo||!rhas(ROOT.tTo))ROOT.tTo="TWD";
     if(typeof ROOT.tTop!=="string"||ROOT.tTop==="")ROOT.tTop="1000";
     if(typeof ROOT.tBot!=="string"||ROOT.tBot==="")ROOT.tBot="24";
+    if(typeof ROOT.editedAt!=="string")ROOT.editedAt="";
     ROOT.v=4;
   }
   /* 舊版 (dashboard.html 的 traveltool-v3) 只讀一次,搬成第一個行程;不會回寫舊 key */
@@ -1109,6 +1120,7 @@ footer{position:relative;z-index:1}
      不能存一次警告就閉嘴,不然後面改的東西全部靜靜掉光 */
   var lastQuotaWarn=0;
   function writeNow(){
+    ROOT.editedAt=(new Date()).toISOString();   /* 給備份檔比新舊用 */
     try{localStorage.setItem(KEY,JSON.stringify(ROOT));return true;}
     catch(e){
       var n=Date.now();
@@ -2137,6 +2149,17 @@ footer{position:relative;z-index:1}
   function download(name,text,mime){try{var blob=(text instanceof Blob)?text:new Blob([text],{type:mime||"text/plain;charset=utf-8"});var url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(url);a.remove();},100);}catch(e){toast("此環境擋下載,正式版可正常匯出");}}
   function bkName(){var d=new Date(),p=function(v){return (v<10?"0":"")+v;};
     return "旅程備份-"+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+"-"+p(d.getHours())+p(d.getMinutes())+".json";}
+  /* 「8/3 14:20」。手動搬檔案最怕拿舊的蓋掉新的,所以時間一定要看得到 */
+  function whenTxt(iso){var d=iso?new Date(iso):null;if(!d||isNaN(d.getTime()))return "";
+    var p=function(v){return (v<10?"0":"")+v;};
+    return (d.getMonth()+1)+"/"+d.getDate()+" "+p(d.getHours())+":"+p(d.getMinutes());}
+  function agoTxt(ms){var m=Math.round(ms/60000);
+    if(m<60)return m+" 分鐘";
+    var h=Math.round(m/60);if(h<48)return h+" 小時";
+    return Math.round(h/24)+" 天";}
+  function bkStat(){var el=$("#bkStat");if(!el)return;
+    var w=whenTxt(ROOT.editedAt);
+    el.textContent=(w?("這台裝置最後編輯："+w+"　"):"")+"換手機／換瀏覽器看不到資料時，用備份檔搬過去。";}
   function bkExport(quiet){
     var nm=bkName();
     download(nm,JSON.stringify({app:"traveltool",v:4,at:(new Date()).toISOString(),data:ROOT}),"application/json;charset=utf-8");
@@ -2147,7 +2170,16 @@ footer{position:relative;z-index:1}
     if(!d||typeof d!=="object"||!Array.isArray(d.trips)||!d.trips.length){toast("這不是備份檔（或檔案壞了）");return;}
     var n=d.trips.length,
         names=d.trips.slice(0,3).map(function(t){return (t&&t.title)||"未命名";}).join("、")+(n>3?" …":"");
-    uiConfirm("讀進這個備份檔?\n"+n+" 趟："+names+"\n\n這台裝置目前的資料會被整份取代。\n(保險起見,會先自動下載一份現在的備份)",function(){
+    /* 比新舊：讀進一份比較舊的檔 = 把新資料蓋掉,這個一定要先講 */
+    var theirAt=d.editedAt||(obj&&obj.at)||"",mineAt=ROOT.editedAt||"",warn="";
+    var tt=theirAt?new Date(theirAt).getTime():NaN,mm=mineAt?new Date(mineAt).getTime():NaN;
+    if(isFinite(tt)&&isFinite(mm)&&tt<mm-60000)
+      warn="\n\n⚠️ 這個備份檔比這台裝置的資料舊 "+agoTxt(mm-tt)+"\n讀進去會蓋掉比較新的那一份!";
+    var msg="讀進這個備份檔?\n"+n+" 趟："+names+"\n"+
+      (theirAt?("備份檔的資料時間："+whenTxt(theirAt)+"\n"):"")+
+      (mineAt?("這台裝置最後編輯："+whenTxt(mineAt)+"\n"):"")+
+      warn+"\n\n這台裝置目前的資料會被整份取代。\n(保險起見,會先自動下載一份現在的備份)";
+    uiConfirm(msg,function(){
       bkExport(true);                       /* 先把現在的存下來當退路 */
       var prev=ROOT;
       ROOT=d;normalize();
@@ -2661,7 +2693,7 @@ footer{position:relative;z-index:1}
       syncTopbar();
       expr="";lastTotal=0;thEdit=false;packEdit=false;memEdit=false;editDayN=null;phEdit=false;phSel={};packOpen={};
       save();applyThEdit();renderAll();setTab("home");toast("已全部重設");},{danger:true,okText:"清空"});};
-    $("#themeBtn").onclick=function(e){e.stopPropagation();$("#themePop").classList.toggle("show");};
+    $("#themeBtn").onclick=function(e){e.stopPropagation();bkStat();$("#themePop").classList.toggle("show");};
     $("#themePop").addEventListener("click",function(e){var b=e.target.closest("[data-color]");if(b){state.accent=b.getAttribute("data-color")||"";save();applyAccent();}});
     $("#customColor").addEventListener("input",function(){state.accent=this.value;save();applyAccent();});
     document.addEventListener("click",function(e){if(!e.target.closest("#themePop")&&!e.target.closest("#themeBtn"))$("#themePop").classList.remove("show");});
