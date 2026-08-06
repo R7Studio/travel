@@ -21,10 +21,17 @@
     --pri:#4F7CB3; --pri-deep:color-mix(in srgb,var(--pri) 76%,#08192b); --pri-soft:color-mix(in srgb,var(--pri) 13%,#ffffff);
     --good:#46A97B; --good-soft:#E6F4EC; --red:#D9645E; --red-soft:#FBEBEA; --warn:#E0A94B; --hot:#FFF7DE;
     --shadow:rgba(52,72,100,.10); --shadow-lg:rgba(52,72,100,.20);
+    /* R7Studio 全站字型：英數與中文都用各平台的系統字,不指定任何特定字型。
+       Win = Segoe UI + 微軟正黑 / Mac = SF Pro + 蘋方 / Android = Noto Sans TC。
+       不掛 CDN 字型、不寫 @font-face —— 斷網打開長得一樣。
+       數字對齊靠 font-variant-numeric:tabular-nums,不靠等寬字型 */
     --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei","Noto Sans TC","Heiti TC",sans-serif;
   }
   /* 這頁永遠淺色（見下面 GLASS SKIN）,所以沒有深色模式那一套 */
 
+  /* 字型掛 body,不能只掛 .app —— 7 個 modal 和 toast 都在 .app 外面(見 798 行以後),
+     只掛 .app 的話那些對話框會掉回瀏覽器預設字(Times New Roman / 新細明體) */
+  body{font-family:var(--font);-webkit-font-smoothing:antialiased}
   .app{margin:0;font-family:var(--font);color:var(--ink);line-height:1.55;min-height:100vh;background:var(--bg);-webkit-font-smoothing:antialiased;overflow-x:clip}
   .cvt-row{display:flex;gap:8px;margin-bottom:9px}
   .cvt-row input{flex:1 1 0;min-width:0;width:50%;border:1.5px solid var(--line);background:var(--surface-2);border-radius:10px;padding:10px 11px;font-weight:800;font-variant-numeric:tabular-nums;text-align:right;outline:0;font-size:1.05rem}
@@ -789,6 +796,28 @@ footer{position:relative;z-index:1}
     <p class="tp-note" id="bkStat">換手機／換瀏覽器看不到資料時，用備份檔搬過去。</p>
     <div class="tp-data2">
       <button class="tp-link danger" id="clearAll">✕ 全部清空</button>
+    </div>
+
+    <!-- 雲端：網址加 #r7admin 才會顯示，一般使用者看不到 -->
+    <div id="cloudBox" style="display:none">
+      <div class="tp-divider"></div>
+      <p class="tp-title">☁️ 雲端</p>
+      <div id="cloudSetup" style="display:none">
+        <p class="tp-note" style="margin:0 0 7px">第一次要先設定。到 Firebase 主控台 → 專案設定 → 你的網頁應用程式，把 <b>firebaseConfig</b> 那整段複製貼進來：</p>
+        <textarea id="cloudCfgIn" spellcheck="false" placeholder='apiKey: "AIza...",&#10;appId: "1:659...:web:..."'
+          style="width:100%;height:88px;border:1.5px solid var(--line);background:var(--surface-2);border-radius:10px;padding:8px 10px;font-family:inherit;font-size:.75rem;color:var(--ink);outline:0;resize:vertical"></textarea>
+        <button class="btn ghost sm" id="cloudCfgSave" style="width:100%;justify-content:center;margin-top:7px">儲存設定</button>
+      </div>
+      <p class="tp-note" id="cloudWho" style="margin:0 0 9px">未登入</p>
+      <div class="tp-data">
+        <button class="btn ghost sm" id="cloudLoginBtn">🔑 用 Google 登入</button>
+        <button class="btn ghost sm" id="cloudUpBtn" style="display:none">⬆️ 上傳到雲端</button>
+        <button class="btn ghost sm" id="cloudDownBtn" style="display:none">⬇️ 從雲端讀取</button>
+      </div>
+      <p class="tp-note" id="cloudStat"></p>
+      <div class="tp-data2">
+        <button class="tp-link" id="cloudOutBtn" style="display:none">登出</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2165,7 +2194,8 @@ footer{position:relative;z-index:1}
     download(nm,JSON.stringify({app:"traveltool",v:4,at:(new Date()).toISOString(),data:ROOT}),"application/json;charset=utf-8");
     if(!quiet)toast("已匯出 "+nm+"（"+ROOT.trips.length+" 趟 · "+mbTxt(usedBytes())+"）");
   }
-  function bkApply(obj){
+  function bkApply(obj,src){
+    src=src||"備份檔";
     var d=(obj&&obj.app==="traveltool"&&obj.data)?obj.data:obj;
     if(!d||typeof d!=="object"||!Array.isArray(d.trips)||!d.trips.length){toast("這不是備份檔（或檔案壞了）");return;}
     var n=d.trips.length,
@@ -2174,9 +2204,9 @@ footer{position:relative;z-index:1}
     var theirAt=d.editedAt||(obj&&obj.at)||"",mineAt=ROOT.editedAt||"",warn="";
     var tt=theirAt?new Date(theirAt).getTime():NaN,mm=mineAt?new Date(mineAt).getTime():NaN;
     if(isFinite(tt)&&isFinite(mm)&&tt<mm-60000)
-      warn="\n\n⚠️ 這個備份檔比這台裝置的資料舊 "+agoTxt(mm-tt)+"\n讀進去會蓋掉比較新的那一份!";
-    var msg="讀進這個備份檔?\n"+n+" 趟："+names+"\n"+
-      (theirAt?("備份檔的資料時間："+whenTxt(theirAt)+"\n"):"")+
+      warn="\n\n⚠️ 這份"+src+"比這台裝置的資料舊 "+agoTxt(mm-tt)+"\n讀進去會蓋掉比較新的那一份!";
+    var msg="讀進這個"+src+"?\n"+n+" 趟："+names+"\n"+
+      (theirAt?(src+"的資料時間："+whenTxt(theirAt)+"\n"):"")+
       (mineAt?("這台裝置最後編輯："+whenTxt(mineAt)+"\n"):"")+
       warn+"\n\n這台裝置目前的資料會被整份取代。\n(保險起見,會先自動下載一份現在的備份)";
     uiConfirm(msg,function(){
@@ -2200,6 +2230,226 @@ footer{position:relative;z-index:1}
     fr.onerror=function(){toast("讀不到這個檔");};
     fr.onload=function(){var o;try{o=JSON.parse(fr.result);}catch(e){toast("這不是備份檔(不是有效的 JSON)");return;}bkApply(o);};
     fr.readAsText(file);
+  }
+
+  /* ===== 雲端同步（R7Studio 共用版模）=====
+     隱藏功能：網址結尾加 #r7admin 才會出現「☁️ 雲端」那一區,一般使用者看不到任何入口,
+     頁面也不會去載 Firebase SDK（沒有 #r7admin 就是零外部連線,跟以前一樣）。
+
+     資料放 Firestore：
+       r7studio/trip              ← 索引（時間、筆數、切成幾塊）
+       r7studio/trip/chunks/{n}   ← 整包 JSON 切塊存
+     為什麼要切塊：Firestore 單一文件上限 1 MiB,這裡的照片是 base64 存在資料裡,一定會超過。
+
+     讀下來之後直接餵給 bkApply() —— 比新舊、先自動下載一份退路、整份取代,
+     跟讀本機備份檔走完全相同的那條路,不另外寫一套。 */
+
+  /* ★ 從 Firebase 主控台複製：專案設定 → 一般設定 → 您的應用程式 → 網頁應用程式 → SDK 設定與配置 */
+  var FB_CFG={
+    apiKey:"PASTE_API_KEY",
+    authDomain:"r7studio-data.firebaseapp.com",
+    projectId:"r7studio-data",
+    appId:"PASTE_APP_ID"
+  };
+  /* 名單存 SHA-256 不存明文 —— 這個檔案會發布到公開網站,不想把 email 攤在原始碼裡給爬蟲收走。
+     這裡擋的只是「帳號選錯了」好給清楚提示,真正把關的是 firestore.rules（那份不發布）。
+     加人：瀏覽器 console 執行
+       crypto.subtle.digest('SHA-256',new TextEncoder().encode('someone@example.com'))
+         .then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
+     改名單要連 firebase/firestore.rules 一起改,只改一邊會變成「登入成功但存不進去」 */
+  var CLOUD_ALLOWED=[
+    "31214df4949f6ecc76ebb22b1d360fd5e1175b31e5062c904292b60b7889fe44",  /* red_hong@cameo */
+    "529fc05ea83473a0be67d96f2bc7d004e2dc16d2a308788d4abfce8c3a3f984b"   /* joyce929fcs@gmail */
+  ];
+  async function cloudAllowed(email){
+    var b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(String(email||"").toLowerCase()));
+    var h=Array.prototype.map.call(new Uint8Array(b),function(x){return x.toString(16).padStart(2,"0");}).join("");
+    return CLOUD_ALLOWED.indexOf(h)>=0;
+  }
+  var CLOUD_DOC="trip";
+  var CLOUD_SDK="https://www.gstatic.com/firebasejs/11.6.1/";
+  /* 20 萬字元一塊：中文 3 bytes、emoji 4 bytes,最壞 800KB,穩穩低於 1 MiB,又不用逐字算 byte */
+  var CLOUD_CHUNK=200000;
+
+  function cloudAdminMode(){return /(^|[#&])r7admin\b/.test(location.hash);}
+  function cloudEmuMode(){return /(^|[#&])r7emu\b/.test(location.hash);}
+
+  /* 設定值有兩個來源：檔案裡的 FB_CFG（填了就用）,或使用者在畫面上貼一次存進 localStorage。
+     有貼上這條路,就不用為了設定去改 HTML —— 一般人不該被逼著編輯程式碼 */
+  function cloudCfg(){
+    if(FB_CFG.apiKey.indexOf("PASTE")<0)return FB_CFG;
+    try{var o=JSON.parse(localStorage.getItem("r7-fbcfg")||"null");if(o&&o.apiKey&&o.appId)return o;}catch(e){}
+    return null;
+  }
+  function cloudConfigured(){return !!cloudCfg();}
+  /* 直接吃從 Firebase 主控台整段複製下來的東西,不管是 JS 物件還是 JSON 都能解 */
+  function cloudCfgParse(txt){
+    var g=function(k){var m=new RegExp(k+'\\s*:\\s*["\\\']([^"\\\']+)["\\\']').exec(txt);return m?m[1]:"";};
+    var c={apiKey:g("apiKey"),authDomain:g("authDomain"),projectId:g("projectId"),appId:g("appId")};
+    if(!c.apiKey||!c.appId)return null;
+    if(!c.projectId)c.projectId="r7studio-data";
+    if(!c.authDomain)c.authDomain=c.projectId+".firebaseapp.com";
+    return c;
+  }
+  function cloudCfgSave(){
+    var c=cloudCfgParse($("#cloudCfgIn").value);
+    if(!c){toast("看不出 apiKey 和 appId,整段重貼一次試試");return;}
+    localStorage.setItem("r7-fbcfg",JSON.stringify(c));
+    toast("設定已存,重新整理中…");
+    setTimeout(function(){location.reload();},700);
+  }
+
+  var FB=null;
+  async function cloudBoot(){
+    if(FB)return FB;
+    if(!cloudConfigured())throw new Error("還沒填 Firebase 設定");
+    var mods=await Promise.all([
+      import(CLOUD_SDK+"firebase-app.js"),
+      import(CLOUD_SDK+"firebase-auth.js"),
+      import(CLOUD_SDK+"firebase-firestore.js")
+    ]);
+    var appM=mods[0],authM=mods[1],fsM=mods[2];
+    var app=appM.initializeApp(cloudCfg());
+    var auth=authM.getAuth(app),db=fsM.getFirestore(app);
+    if(cloudEmuMode()){                       /* 本機模擬器測試用,正式網址不會走到 */
+      authM.connectAuthEmulator(auth,"http://127.0.0.1:9099",{disableWarnings:true});
+      fsM.connectFirestoreEmulator(db,"127.0.0.1",8080);
+    }
+    FB={auth:auth,db:db,A:authM,F:fsM,user:null};
+    authM.onAuthStateChanged(auth,function(u){FB.user=u;cloudRender();if(u)cloudStat();});
+    return FB;
+  }
+
+  function cloudErr(e){
+    var c=(e&&e.code)||"";
+    if(c==="auth/popup-closed-by-user"||c==="auth/cancelled-popup-request")return;
+    if(c==="auth/unauthorized-domain"){toast("這個網域沒授權：Firebase → Authentication → Settings → 已授權網域");return;}
+    if(c==="auth/operation-not-allowed"){toast("Firebase 還沒開啟 Google 登入");return;}
+    if(c==="permission-denied"||c==="PERMISSION_DENIED"){toast("權限不足：這個帳號不在 firestore.rules 的名單裡");return;}
+    if(c==="unavailable"){toast("連不上雲端,檢查網路");return;}
+    toast("雲端出錯："+(c||e.message||e));
+    console.error("[cloud]",e);
+  }
+
+  function cloudChunk(s){
+    var out=[],i=0;
+    while(i<s.length){
+      var n=Math.min(CLOUD_CHUNK,s.length-i);
+      /* 不要切在代理對中間,不然 emoji 會裂成亂碼 */
+      if(i+n<s.length){var c=s.charCodeAt(i+n-1);if(c>=0xD800&&c<=0xDBFF)n--;}
+      out.push(s.substr(i,n));i+=n;
+    }
+    return out;
+  }
+  function cloudSummary(){return ROOT.trips.length+" 趟 · "+mbTxt(usedBytes());}
+
+  async function cloudLogin(){
+    try{
+      var fb=await cloudBoot();
+      var prov=new fb.A.GoogleAuthProvider();
+      prov.setCustomParameters({prompt:"select_account"});
+      var res=await fb.A.signInWithPopup(fb.auth,prov);
+      if(!await cloudAllowed(res.user.email)){  /* 前端先擋一次,規則那邊還會再擋一次 */
+        await fb.A.signOut(fb.auth);
+        toast("這個帳號沒有上傳權限："+res.user.email);
+        return;
+      }
+      toast("已登入 "+res.user.email);
+    }catch(e){cloudErr(e);}
+  }
+  async function cloudLogout(){
+    try{var fb=await cloudBoot();await fb.A.signOut(fb.auth);toast("已登出");}catch(e){cloudErr(e);}
+  }
+  function cloudReady(fb){
+    if(!fb.user){toast("請先登入");return false;}
+    return true;
+  }
+
+  async function cloudUpload(){
+    try{
+      var fb=await cloudBoot();
+      if(!cloudReady(fb))return;
+      var F=fb.F,db=fb.db;
+      var payload=JSON.stringify({app:"traveltool",v:4,at:(new Date()).toISOString(),data:ROOT});
+      var parts=cloudChunk(payload);
+      /* 舊的塊數要知道,不然這次變少時會留下上一版的尾巴,下載會拼到舊資料 */
+      var oldN=0;
+      try{var s0=await F.getDoc(F.doc(db,"r7studio",CLOUD_DOC));if(s0.exists())oldN=s0.data().chunks||0;}catch(e){}
+      var batch=F.writeBatch(db);
+      parts.forEach(function(s,i){batch.set(F.doc(db,"r7studio",CLOUD_DOC,"chunks",String(i)),{s:s});});
+      for(var i=parts.length;i<oldN;i++)batch.delete(F.doc(db,"r7studio",CLOUD_DOC,"chunks",String(i)));
+      batch.set(F.doc(db,"r7studio",CLOUD_DOC),{
+        chunks:parts.length,bytes:payload.length,summary:cloudSummary(),
+        editedAt:ROOT.editedAt||"",uploadedAt:F.serverTimestamp(),uploadedBy:fb.user.email
+      });
+      await batch.commit();
+      toast("已上傳到雲端（"+cloudSummary()+"）");
+      cloudStat();
+    }catch(e){cloudErr(e);}
+  }
+
+  async function cloudDownload(){
+    try{
+      var fb=await cloudBoot();
+      if(!cloudReady(fb))return;
+      var F=fb.F,db=fb.db;
+      var meta=await F.getDoc(F.doc(db,"r7studio",CLOUD_DOC));
+      if(!meta.exists()){toast("雲端還沒有資料");return;}
+      var m=meta.data(),n=m.chunks||0;
+      if(!n){toast("雲端資料是空的");return;}
+      var reqs=[];
+      for(var i=0;i<n;i++)reqs.push(F.getDoc(F.doc(db,"r7studio",CLOUD_DOC,"chunks",String(i))));
+      var snaps=await Promise.all(reqs);
+      var s="";
+      for(var k=0;k<n;k++){
+        if(!snaps[k].exists()){toast("雲端資料缺第 "+(k+1)+" 塊,沒有讀進來");return;}
+        s+=snaps[k].data().s||"";
+      }
+      var obj;
+      try{obj=JSON.parse(s);}catch(e){toast("雲端資料壞了（不是有效的 JSON）");return;}
+      bkApply(obj,"雲端");   /* 走本機讀備份檔同一條路：比新舊 → 先下載退路 → 整份取代 */
+    }catch(e){cloudErr(e);}
+  }
+
+  async function cloudStat(){
+    var el=$("#cloudStat");if(!el)return;
+    if(!cloudConfigured()){el.textContent="還沒填 Firebase 設定（FB_CFG）。";return;}
+    try{
+      var fb=await cloudBoot();
+      if(!fb.user){el.textContent="";return;}
+      var s=await fb.F.getDoc(fb.F.doc(fb.db,"r7studio",CLOUD_DOC));
+      if(!s.exists()){el.textContent="雲端還沒有資料。";return;}
+      var m=s.data(),t=(m.uploadedAt&&m.uploadedAt.toDate)?m.uploadedAt.toDate():null;
+      el.textContent="雲端："+(m.summary||"")+(t?("　"+whenTxt(t.toISOString())):"")+(m.uploadedBy?("　"+m.uploadedBy):"");
+    }catch(e){el.textContent="讀不到雲端狀態："+((e&&e.code)||e.message||e);}
+  }
+
+  function cloudRender(){
+    var box=$("#cloudBox");if(!box)return;
+    var on=!!(FB&&FB.user);
+    $("#cloudWho").textContent=on?("已登入 "+FB.user.email):"未登入";
+    $("#cloudLoginBtn").style.display=on?"none":"";
+    $("#cloudUpBtn").style.display=on?"":"none";
+    $("#cloudDownBtn").style.display=on?"":"none";
+    $("#cloudOutBtn").style.display=on?"":"none";
+  }
+
+  function cloudInitUI(){
+    if(!cloudAdminMode())return;                    /* 沒有 #r7admin 就整區不存在,也不載 SDK */
+    $("#cloudBox").style.display="block";
+    $("#cloudLoginBtn").onclick=cloudLogin;
+    $("#cloudUpBtn").onclick=cloudUpload;
+    $("#cloudDownBtn").onclick=cloudDownload;
+    $("#cloudOutBtn").onclick=cloudLogout;
+    $("#cloudCfgSave").onclick=cloudCfgSave;
+    if(!cloudConfigured()){                         /* 還沒設定：只顯示貼上框,登入那些先藏起來 */
+      $("#cloudSetup").style.display="block";
+      $("#cloudLoginBtn").style.display="none";
+      $("#cloudWho").style.display="none";
+      return;
+    }
+    cloudRender();
+    cloudBoot().then(cloudRender).catch(cloudErr);
   }
   function renderAll(){renderItin();renderPacking();renderMemo();renderPhotos();renderSplit();renderCur();renderLadder();renderCmp();renderThList();applyThEdit();renderCalc();renderHome();syncSidebar();syncTopbar();}
 
@@ -2693,6 +2943,7 @@ footer{position:relative;z-index:1}
       syncTopbar();
       expr="";lastTotal=0;thEdit=false;packEdit=false;memEdit=false;editDayN=null;phEdit=false;phSel={};packOpen={};
       save();applyThEdit();renderAll();setTab("home");toast("已全部重設");},{danger:true,okText:"清空"});};
+    cloudInitUI();     /* 只有網址帶 #r7admin 時才會真的做事 */
     $("#themeBtn").onclick=function(e){e.stopPropagation();bkStat();$("#themePop").classList.toggle("show");};
     $("#themePop").addEventListener("click",function(e){var b=e.target.closest("[data-color]");if(b){state.accent=b.getAttribute("data-color")||"";save();applyAccent();}});
     $("#customColor").addEventListener("input",function(){state.accent=this.value;save();applyAccent();});
