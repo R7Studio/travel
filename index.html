@@ -2244,12 +2244,13 @@ footer{position:relative;z-index:1}
      讀下來之後直接餵給 bkApply() —— 比新舊、先自動下載一份退路、整份取代,
      跟讀本機備份檔走完全相同的那條路,不另外寫一套。 */
 
-  /* ★ 從 Firebase 主控台複製：專案設定 → 一般設定 → 您的應用程式 → 網頁應用程式 → SDK 設定與配置 */
+  /* ★ 從 Firebase 主控台複製：專案設定 → 一般設定 → 您的應用程式 → 網頁應用程式 → SDK 設定與配置
+     apiKey 不是密碼,公開在前端是 Firebase 的正常設計；把關的是 Google 登入 + firestore.rules。 */
   var FB_CFG={
-    apiKey:"PASTE_API_KEY",
+    apiKey:"AIzaSyBfUDoDFA4as5xjqZkH8njnkENiNsieWcA",
     authDomain:"r7studio-data.firebaseapp.com",
     projectId:"r7studio-data",
-    appId:"PASTE_APP_ID"
+    appId:"1:659758109948:web:dcdf18418f596837213379"
   };
   /* 名單存 SHA-256 不存明文 —— 這個檔案會發布到公開網站,不想把 email 攤在原始碼裡給爬蟲收走。
      這裡擋的只是「帳號選錯了」好給清楚提示,真正把關的是 firestore.rules（那份不發布）。
