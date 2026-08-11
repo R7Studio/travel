@@ -320,6 +320,14 @@
   box-shadow:0 10px 22px -12px var(--pri-deep)!important}
 .tb-btn.on .n{background:rgba(255,255,255,.25);color:#fff}
 @media(max-width:600px){.tb-btn .t{display:none}.tb-btn{padding:0 12px}}
+/* 自動同步的小燈：貼在 ⚙️ 右上角。沒開雲端(沒有 #r7admin)時完全不畫,一般使用者看不到 */
+.sync-dot{position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;
+  background:transparent;pointer-events:none;transition:background .2s}
+.sync-dot[data-s="busy"]{background:#C98A2C;animation:syncPulse 1s ease-in-out infinite}
+.sync-dot[data-s="dirty"]{background:#C98A2C}
+.sync-dot[data-s="ok"]{background:#4C9A5E}
+.sync-dot[data-s="err"],.sync-dot[data-s="conflict"]{background:#C85C5C}
+@keyframes syncPulse{0%,100%{opacity:1}50%{opacity:.25}}
 
 /* ===== 換算工具浮動面板 ===== */
 .trip-input{flex:1;min-width:0;border:0;background:transparent;font-family:inherit;font-size:clamp(1.25rem,3.4vw,1.7rem);font-weight:900;letter-spacing:-.01em;color:var(--ink);padding:6px 10px;border-radius:12px;outline:0;resize:none;overflow:hidden;line-height:1.25}
@@ -626,7 +634,7 @@ footer{position:relative;z-index:1}
       <button class="tb-btn" id="toolBtn" title="換算工具（計算機 / 比價 / 對照）">
         <span class="i">🧮</span><span class="t">換算</span><i class="n" id="cntCur"></i>
       </button>
-      <button class="tb-btn ic" id="themeBtn" title="設定"><span class="i">⚙️</span></button>
+      <button class="tb-btn ic" id="themeBtn" title="設定"><span class="i">⚙️</span><i class="sync-dot" id="syncDot" data-s="off"></i></button>
     </div>
 
     <div class="trip-subnav" id="tripSubnav">
@@ -808,13 +816,14 @@ footer{position:relative;z-index:1}
           style="width:100%;height:88px;border:1.5px solid var(--line);background:var(--surface-2);border-radius:10px;padding:8px 10px;font-family:inherit;font-size:.75rem;color:var(--ink);outline:0;resize:vertical"></textarea>
         <button class="btn ghost sm" id="cloudCfgSave" style="width:100%;justify-content:center;margin-top:7px">儲存設定</button>
       </div>
-      <p class="tp-note" id="cloudWho" style="margin:0 0 9px">未登入</p>
+      <p class="tp-note" id="cloudWho" style="margin:0 0 7px">未登入</p>
+      <p class="tp-note" id="cloudStat" style="margin:0 0 9px"></p>
       <div class="tp-data">
         <button class="btn ghost sm" id="cloudLoginBtn">🔑 用 Google 登入</button>
-        <button class="btn ghost sm" id="cloudUpBtn" style="display:none">⬆️ 上傳到雲端</button>
-        <button class="btn ghost sm" id="cloudDownBtn" style="display:none">⬇️ 從雲端讀取</button>
+        <button class="btn ghost sm" id="cloudUpBtn" style="display:none">⬆️ 立刻上傳</button>
+        <button class="btn ghost sm" id="cloudDownBtn" style="display:none">⬇️ 立刻讀取</button>
       </div>
-      <p class="tp-note" id="cloudStat"></p>
+      <p class="tp-note" id="cloudHint" style="display:none">改完 3 秒自動上傳，開啟時自動讀取。上面兩個鈕平常用不到，覺得卡住時才按。</p>
       <div class="tp-data2">
         <button class="tp-link" id="cloudOutBtn" style="display:none">登出</button>
       </div>
@@ -1142,15 +1151,27 @@ footer{position:relative;z-index:1}
     normalize();
   }
   var saveT;
+  /* 套用一份新資料的期間鎖住。setTool()／renderAll() 這些內部會自己 save(),
+     沒鎖的話「從雲端拉下來」會被它們重新蓋上現在的時間戳 → 這台立刻變成最新 → 推回雲端
+     → 對面拉下來也做一樣的事 → 兩台每半秒互推一次,永遠停不下來(實測真的會)。 */
+  var applyLock=false;
   /* 存檔。setItem 要自己包 try：瀏覽器空間滿了(照片放太多)會丟 QuotaExceededError,
      以前寫在 setTimeout 裡面,外層 try 抓不到 → 會整包靜靜地存不進去 */
   function save(){clearTimeout(saveT);saveT=setTimeout(function(){writeNow();},120);}
   /* 存不進去每次都要講（只壓成 4 秒內不重複洗畫面）。
      不能存一次警告就閉嘴,不然後面改的東西全部靜靜掉光 */
   var lastQuotaWarn=0;
-  function writeNow(){
-    ROOT.editedAt=(new Date()).toISOString();   /* 給備份檔比新舊用 */
-    try{localStorage.setItem(KEY,JSON.stringify(ROOT));return true;}
+  /* keepStamp=true：保留資料本身的 editedAt,不要蓋成「現在」。
+     讀備份檔／從雲端拉下來時一定要用這個 —— 不然剛拉完就變成「本機最新」,
+     自動同步會立刻推回雲端,對面那台又拉下來再推回來,兩台無限互推。 */
+  function writeNow(keepStamp){
+    if(applyLock)keepStamp=true;                /* 套資料期間,任何內部 save() 都不准動時間戳 */
+    if(!keepStamp)ROOT.editedAt=(new Date()).toISOString();   /* 給備份檔／雲端比新舊用 */
+    try{
+      localStorage.setItem(KEY,JSON.stringify(ROOT));
+      if(!keepStamp)syncKick();                 /* 本機有新變更 → 排一次自動上傳 */
+      return true;
+    }
     catch(e){
       var n=Date.now();
       if(n-lastQuotaWarn>4000){lastQuotaWarn=n;toast("⚠️ 瀏覽器空間滿了,這次沒存到(照片太多?)");}
@@ -2194,6 +2215,36 @@ footer{position:relative;z-index:1}
     download(nm,JSON.stringify({app:"traveltool",v:4,at:(new Date()).toISOString(),data:ROOT}),"application/json;charset=utf-8");
     if(!quiet)toast("已匯出 "+nm+"（"+ROOT.trips.length+" 趟 · "+mbTxt(usedBytes())+"）");
   }
+  /* 真正把一份資料換上去的那一段。抽出來是因為自動同步要「安靜地」套用 ——
+     不能每次都跳確認視窗,也不能每次都往下載資料夾丟一個備份檔。
+     opt.quiet = 不跳頁、不關面板（使用者可能正在看某一頁,別把他彈回首頁）
+     opt.base  = 這份就是雲端上那一份,套完就記成「已同步」,不要再推回去 */
+  function bkApplyNow(d,opt){
+    opt=opt||{};
+    var prev=ROOT;
+    applyLock=true;
+    try{
+      ROOT=d;normalize();
+      if(!ROOT.editedAt)ROOT.editedAt=(new Date()).toISOString();
+      if(!writeNow(true)){ROOT=prev;normalize();toast("空間不夠,這份資料存不進去(照片太多?)");return false;}
+      expr="";lastTotal=0;thEdit=false;packEdit=false;memEdit=false;editDayN=null;
+      phEdit=false;phSel={};packOpen={};navDayN=null;
+      syncTopbar();applyAccent();setRateFromPair();
+      setTool((ROOT.tool&&TOOL_TABS[ROOT.tool])?ROOT.tool:"calc");
+      $$("#viewSeg button").forEach(function(b){b.classList.toggle("on",b.getAttribute("data-view")===state.view);});
+      applyThEdit();renderAll();
+      if(!opt.quiet){setTab("home");$("#themePop").classList.remove("show");}
+    }finally{
+      /* 上面那些內部 save() 排了一個 120ms 的計時器,它會在鎖放掉之後才觸發 ——
+         不取消的話照樣蓋時間戳,鎖等於白做。取消掉,改用保留時間戳的方式補存一次。 */
+      clearTimeout(saveT);
+      applyLock=false;
+    }
+    writeNow(true);
+    if(opt.base){syncSetBase(ROOT.editedAt||"");syncBlocked=false;}  /* 剛從雲端拉下來 = 一致了,衝突解除 */
+    else syncKick();                            /* 讀本機備份檔 = 本機變新了,排一次上傳 */
+    return true;
+  }
   function bkApply(obj,src){
     src=src||"備份檔";
     var d=(obj&&obj.app==="traveltool"&&obj.data)?obj.data:obj;
@@ -2211,16 +2262,7 @@ footer{position:relative;z-index:1}
       warn+"\n\n這台裝置目前的資料會被整份取代。\n(保險起見,會先自動下載一份現在的備份)";
     uiConfirm(msg,function(){
       bkExport(true);                       /* 先把現在的存下來當退路 */
-      var prev=ROOT;
-      ROOT=d;normalize();
-      if(!writeNow()){ROOT=prev;toast("空間不夠,這份備份存不進去(照片太多?)");return;}
-      expr="";lastTotal=0;thEdit=false;packEdit=false;memEdit=false;editDayN=null;
-      phEdit=false;phSel={};packOpen={};navDayN=null;
-      syncTopbar();applyAccent();setRateFromPair();
-      setTool((ROOT.tool&&TOOL_TABS[ROOT.tool])?ROOT.tool:"calc");
-      $$("#viewSeg button").forEach(function(b){b.classList.toggle("on",b.getAttribute("data-view")===state.view);});
-      applyThEdit();renderAll();setTab("home");
-      $("#themePop").classList.remove("show");
+      if(!bkApplyNow(d,{base:src==="雲端"}))return;
       toast("已讀入 "+n+" 趟旅程");
     },{danger:true,okText:"取代"});
   }
@@ -2317,7 +2359,7 @@ footer{position:relative;z-index:1}
       fsM.connectFirestoreEmulator(db,"127.0.0.1",8080);
     }
     FB={auth:auth,db:db,A:authM,F:fsM,user:null};
-    authM.onAuthStateChanged(auth,function(u){FB.user=u;cloudRender();if(u)cloudStat();});
+    authM.onAuthStateChanged(auth,function(u){FB.user=u;cloudRender();});   /* cloudRender 會接著開自動同步 */
     return FB;
   }
 
@@ -2384,6 +2426,9 @@ footer{position:relative;z-index:1}
         editedAt:ROOT.editedAt||"",uploadedAt:F.serverTimestamp(),uploadedBy:fb.user.email
       });
       await batch.commit();
+      syncSetBase(ROOT.editedAt||"");   /* 手動推完也要記一筆,不然自動同步以為還沒推過 */
+      syncBlocked=false;                /* 手動按上傳 = 使用者決定用這台的蓋掉,衝突解除 */
+      syncShow("ok");
       toast("已上傳到雲端（"+cloudSummary()+"）");
       cloudStat();
     }catch(e){cloudErr(e);}
@@ -2417,22 +2462,247 @@ footer{position:relative;z-index:1}
     if(!cloudConfigured()){el.textContent="還沒填 Firebase 設定（FB_CFG）。";return;}
     try{
       var fb=await cloudBoot();
-      if(!fb.user){el.textContent="";return;}
+      if(!fb.user){syncMeta=null;syncShow("off");return;}
       var s=await fb.F.getDoc(fb.F.doc(fb.db,"r7studio",CLOUD_DOC));
-      if(!s.exists()){el.textContent="雲端還沒有資料。";return;}
-      var m=s.data(),t=(m.uploadedAt&&m.uploadedAt.toDate)?m.uploadedAt.toDate():null;
-      el.textContent="雲端："+(m.summary||"")+(t?("　"+whenTxt(t.toISOString())):"")+(m.uploadedBy?("　"+m.uploadedBy):"");
+      syncMeta=s.exists()?s.data():null;
+      syncShow();
     }catch(e){el.textContent="讀不到雲端狀態："+((e&&e.code)||e.message||e);}
+  }
+
+  /* ===== 自動同步 =====
+     只有一個人在用、不會兩台同時改,所以做成 Google 文件那樣:改完自己上傳、開啟時自己下載。
+
+     兩條規矩守住就不會出事,少一條就會兩台互相無限覆蓋:
+       1. 拉下來的資料用 writeNow(true) 存,保留雲端那份的 editedAt。
+          蓋成「現在」的話,拉完立刻又比雲端新 → 推回去 → 對面拉下來再推回來,沒完沒了。
+       2. 只有「本機比雲端新」才自動推。雲端比較新一律先拉。
+
+     SYNC_BASE 記的是「這台裝置最後一次跟雲端一致時的 editedAt」。
+     用它才分得出「本機有還沒上傳的修改」和「本機只是單純比較舊」——
+     這兩種情況在雲端比較新的時候處理方式完全不同(前者要問人,後者直接蓋)。 */
+  var SYNC_KEY="r7-sync-"+CLOUD_DOC;
+  var SYNC_WAIT=3000;      /* 停手 3 秒才上傳,不然打字打到一半每個字都在推 */
+  var SYNC_MAX=45000;      /* 一直改個不停的話,最多壓 45 秒也要推一次 */
+  var syncTimer=null,syncMaxAt=0,syncBusy=false,syncAgain=false,syncRetryT=null;
+  var syncStat="off",syncMeta=null,syncUnsub=null,syncWant=false,syncTick=null;
+  /* 撞到之後就停手,等人來處理。沒有這個鎖的話會變成:
+     排程→推→發現衝突→退回→排程→…每幾秒空轉一次(白花 Firestore 讀取),
+     而且狀態會在「有變更」和「衝突」之間跳,使用者根本看不出來要去按讀取。 */
+  var syncBlocked=false;
+
+  function syncOn(){return !!(cloudAdminMode()&&FB&&FB.user);}
+  function syncBase(){try{return localStorage.getItem(SYNC_KEY)||"";}catch(e){return "";}}
+  function syncSetBase(at){try{localStorage.setItem(SYNC_KEY,at||"");}catch(e){}}
+  function syncDirty(){return (ROOT.editedAt||"")!==syncBase();}
+  /* 視窗開著的時候不要抽換資料 —— 使用者可能正在裡面打字 */
+  function syncModalOpen(){return !!document.querySelector(".backdrop.show");}
+
+  /* ★ 這三個是防止「新裝置把空白推上去蓋掉雲端」的關鍵,不要拿掉。
+     換手機／換瀏覽器第一次打開時,本機是一份剛生出來的空白旅程,
+     它的 editedAt 是「現在」—— 比雲端任何時候都新。
+     只靠比時間的話會判成「本機比較新」→ 不拉雲端,反而把空白推上去,資料就沒了。 */
+  function syncLocalEmpty(){
+    if(!ROOT.trips||!ROOT.trips.length)return true;
+    if(ROOT.trips.length>1)return false;
+    var t=ROOT.trips[0];
+    return !((t.days&&t.days.length)||(t.packing&&t.packing.length)||(t.memo&&t.memo.length)||
+             (t.photos&&t.photos.length)||(t.members&&t.members.length)||(t.expenses&&t.expenses.length)||
+             t.start||t.end);
+  }
+  function syncVirgin(){return syncBase()===""&&syncLocalEmpty();}   /* 沒同步過 + 裡面是空的 */
+  /* 有沒有「還沒上傳、丟了會心疼」的東西。空白的新裝置不算,不然它永遠拉不到雲端 */
+  function syncAtRisk(){
+    if(!syncDirty())return false;
+    if(syncBase()==="")return !syncLocalEmpty();
+    return true;
+  }
+
+  var SYNC_TXT={off:"",idle:"",busy:"⟳ 同步中…",ok:"✓ 已同步",
+    dirty:"● 有變更，馬上自動上傳",err:"⚠️ 同步失敗，稍後自動重試",
+    conflict:"⚠️ 雲端有另一台裝置的較新資料，請按「⬇️ 立刻讀取」"};
+  function syncShow(s){
+    if(s)syncStat=s;
+    var d=$("#syncDot");if(d)d.setAttribute("data-s",cloudAdminMode()?syncStat:"off");
+    var el=$("#cloudStat");if(!el)return;
+    var tail="";
+    if(syncMeta){
+      var t=(syncMeta.uploadedAt&&syncMeta.uploadedAt.toDate)?syncMeta.uploadedAt.toDate():null;
+      tail="雲端："+(syncMeta.summary||"")+(t?("　"+whenTxt(t.toISOString())):"");
+    }else if(FB&&FB.user)tail="雲端還沒有資料。";
+    var head=SYNC_TXT[syncStat]||"";
+    el.textContent=head+(head&&tail?"　·　":"")+tail;
+  }
+
+  function syncQuiet(e){                        /* 網路斷掉不用吵使用者,回來會自己補 */
+    var c=(e&&e.code)||"";
+    return c==="unavailable"||c==="deadline-exceeded"||!navigator.onLine;
+  }
+  function syncRetry(){clearTimeout(syncRetryT);syncRetryT=setTimeout(function(){if(syncOn()&&syncDirty())syncKick();},20000);}
+
+  /* 改完排一次上傳。每次 save() 都會叫到,所以這裡只能做很輕的事 */
+  function syncKick(){
+    if(!syncOn())return;
+    if(syncBlocked){syncShow("conflict");return;}   /* 卡在衝突,停手等人處理 */
+    if(syncVirgin())return;                     /* 空白新裝置先別推,等 syncPull 把雲端拉下來 */
+    if(syncBusy){syncAgain=true;return;}
+    if(!syncDirty()){syncShow("ok");return;}
+    syncShow("dirty");
+    var now=Date.now();
+    if(!syncMaxAt)syncMaxAt=now+SYNC_MAX;
+    clearTimeout(syncTimer);
+    syncTimer=setTimeout(function(){syncTimer=null;syncMaxAt=0;syncPush();},Math.max(400,Math.min(SYNC_WAIT,syncMaxAt-now)));
+  }
+  /* 切到別的分頁／關視窗前先推,不要把改好的東西留在半路 */
+  function syncFlush(){
+    if(!syncOn()||!syncDirty()||syncBusy)return;
+    clearTimeout(syncTimer);syncMaxAt=0;syncPush();
+  }
+
+  async function syncPush(){
+    if(!syncOn()||syncBusy)return;
+    if(syncVirgin())return;                     /* 同上：空白新裝置絕對不推 */
+    if(!syncDirty()){syncShow("ok");return;}
+    syncBusy=true;syncShow("busy");
+    try{
+      var F=FB.F,db=FB.db,ref=F.doc(db,"r7studio",CLOUD_DOC);
+      var at=ROOT.editedAt||"";
+      var s0=await F.getDoc(ref);
+      /* 推之前再看一眼雲端:上面那一版還是不是我當初拿到的那一版?
+         不是 = 別台在我之後推過東西,我推上去就是把它蓋掉。
+
+         ★ 這裡不可以改成比時間戳。離線改的東西時間戳是「當時」,比別台後來改的舊,
+           照時間比會判成「我比較舊,推上去沒關係」,結果把別台的蓋掉(實測真的會)。
+           而且手機和電腦的時鐘本來就不一定準,比時間先天不可靠。 */
+      if(s0.exists()){
+        syncMeta=s0.data();
+        var cAt=syncMeta.editedAt||"";
+        if(cAt&&cAt!==syncBase()){
+          syncBusy=false;syncBlocked=true;syncShow("conflict");
+          if(!syncModalOpen())syncPull(true);   /* 本機沒有未上傳的東西的話,這一拉就自動化解了 */
+          return;
+        }
+      }
+      var payload=JSON.stringify({app:"traveltool",v:4,at:(new Date()).toISOString(),data:ROOT});
+      var parts=cloudChunk(payload);
+      var oldN=s0.exists()?(s0.data().chunks||0):0;
+      var batch=F.writeBatch(db);
+      parts.forEach(function(s,i){batch.set(F.doc(db,"r7studio",CLOUD_DOC,"chunks",String(i)),{s:s});});
+      /* 這次變少的話要把上一版多出來的塊刪掉,不然下載會拼到舊資料的尾巴 */
+      for(var i=parts.length;i<oldN;i++)batch.delete(F.doc(db,"r7studio",CLOUD_DOC,"chunks",String(i)));
+      batch.set(ref,{chunks:parts.length,bytes:payload.length,summary:cloudSummary(),
+        editedAt:at,uploadedAt:F.serverTimestamp(),uploadedBy:FB.user.email});
+      await batch.commit();
+      syncSetBase(at);
+      syncBusy=false;syncShow("ok");
+    }catch(e){
+      syncBusy=false;syncShow("err");
+      if(!syncQuiet(e))cloudErr(e);
+      syncRetry();
+    }
+    if(syncAgain){syncAgain=false;syncKick();}
+  }
+
+  /* auto=true 是程式自己決定要拉（開頁、收到別台推上來的通知）——
+     這種時候本機若有沒上傳的修改就不硬蓋,停下來讓人決定。
+     auto=false 是使用者自己按的,那就照使用者的意思走 bkApply（會先備份再問一次）。 */
+  async function syncPull(auto){
+    if(!syncOn()||syncBusy)return;
+    syncBusy=true;syncShow("busy");
+    try{
+      var F=FB.F,db=FB.db;
+      var meta=await F.getDoc(F.doc(db,"r7studio",CLOUD_DOC));
+      if(!meta.exists()){
+        syncMeta=null;syncBusy=false;
+        syncShow(syncDirty()?"dirty":"idle");
+        if(syncDirty())syncKick();              /* 雲端空的,把這台的推上去當第一份 */
+        return;
+      }
+      var m=meta.data();syncMeta=m;
+      var n=m.chunks||0,cAt=m.editedAt||"";
+      if(!n){syncBusy=false;syncShow("idle");return;}
+      /* 全新空白裝置 → 無條件拉。這一段一定要擺在最前面,理由看 syncVirgin 上面那段註解 */
+      if(!syncVirgin()){
+        if(cAt&&cAt===syncBase()){              /* 雲端還是我當初那一版,沒有新東西可拉 */
+          syncBusy=false;syncBlocked=false;     /* 沒有別人插隊,不是衝突 */
+          syncShow(syncDirty()?"dirty":"ok");
+          if(syncDirty())syncKick();
+          return;
+        }
+        if(auto&&syncAtRisk()){                 /* 雲端有新東西,我這邊也有沒推的 = 真的撞到 */
+          syncBusy=false;syncBlocked=true;syncShow("conflict");return;
+        }
+      }
+      var reqs=[];
+      for(var i=0;i<n;i++)reqs.push(F.getDoc(F.doc(db,"r7studio",CLOUD_DOC,"chunks",String(i))));
+      var snaps=await Promise.all(reqs);
+      var s="";
+      for(var k=0;k<n;k++){
+        if(!snaps[k].exists()){syncBusy=false;syncShow("err");toast("雲端資料缺第 "+(k+1)+" 塊,沒有讀進來");return;}
+        s+=snaps[k].data().s||"";
+      }
+      var obj;
+      try{obj=JSON.parse(s);}catch(e){syncBusy=false;syncShow("err");toast("雲端資料壞了（不是有效的 JSON）");return;}
+      var d=(obj&&obj.app==="traveltool"&&obj.data)?obj.data:obj;
+      if(!d||!Array.isArray(d.trips)||!d.trips.length){syncBusy=false;syncShow("err");toast("雲端資料看起來不對");return;}
+      syncBusy=false;
+      if(bkApplyNow(d,{quiet:true,base:true})){
+        syncShow("ok");
+        toast("☁️ 已同步雲端最新資料（"+cloudSummary()+"）");
+      }else syncShow("err");
+    }catch(e){
+      syncBusy=false;syncShow("err");
+      if(!syncQuiet(e))cloudErr(e);
+      syncRetry();
+    }
+  }
+
+  /* 盯著索引那一份小文件。別台推上來的話這裡幾秒內就會收到,不用自己按讀取 */
+  function syncWatch(){
+    if(syncUnsub||!syncOn())return;
+    var F=FB.F;
+    syncUnsub=F.onSnapshot(F.doc(FB.db,"r7studio",CLOUD_DOC),function(s){
+      if(!s.exists())return;
+      syncMeta=s.data();
+      if((syncMeta.editedAt||"")===syncBase()){syncShow();return;}   /* 這就是我自己剛推上去的那版 */
+      if(syncModalOpen()||document.hidden){syncWant=true;syncShow();return;}
+      syncPull(true);
+    },function(e){if(!syncQuiet(e))console.warn("[sync]",e);});
+  }
+  function syncStop(){
+    if(syncUnsub){try{syncUnsub();}catch(e){}syncUnsub=null;}
+    clearTimeout(syncTimer);clearTimeout(syncRetryT);
+    syncMaxAt=0;syncMeta=null;syncShow("off");
+  }
+  function syncStart(){
+    if(!syncOn())return;
+    syncWatch();
+    if(syncTick)return;                         /* 登入狀態變動會重進來,下面這些只掛一次 */
+    syncPull(true);                             /* 開頁先看一眼雲端 */
+    /* 視窗關掉、或從背景切回來時,把剛剛延後的事情補做完 */
+    syncTick=setInterval(function(){
+      if(!syncOn())return;
+      if(syncWant&&!syncModalOpen()&&!document.hidden){syncWant=false;syncPull(true);return;}
+      if(syncDirty()&&!syncBusy&&!syncTimer)syncKick();
+    },4000);
+    document.addEventListener("visibilitychange",function(){
+      if(!syncOn())return;
+      if(document.hidden)syncFlush();
+      else syncPull(true);
+    });
+    window.addEventListener("pagehide",syncFlush);
+    window.addEventListener("online",function(){if(syncOn()){syncPull(true);if(syncDirty())syncKick();}});
   }
 
   function cloudRender(){
     var box=$("#cloudBox");if(!box)return;
     var on=!!(FB&&FB.user);
-    $("#cloudWho").textContent=on?("已登入 "+FB.user.email):"未登入";
+    $("#cloudWho").textContent=on?("已登入 "+FB.user.email+"　·　自動同步中"):"未登入";
     $("#cloudLoginBtn").style.display=on?"none":"";
     $("#cloudUpBtn").style.display=on?"":"none";
     $("#cloudDownBtn").style.display=on?"":"none";
     $("#cloudOutBtn").style.display=on?"":"none";
+    $("#cloudHint").style.display=on?"":"none";
+    if(on)syncStart();else syncStop();
   }
 
   function cloudInitUI(){
