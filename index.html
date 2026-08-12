@@ -62,12 +62,12 @@
   .tabpanel.active{display:block;animation:fade .22s ease}
   @keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 
-  .s-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .s-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:9px}
   .s-head h2{margin:0;font-size:1.05rem;font-weight:800;color:var(--pri-deep);display:flex;align-items:center;gap:8px}
   .s-head .spacer{flex:1 1 auto}
 
   .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 22px -18px var(--shadow-lg)}
-  .pad{padding:clamp(14px,3.5vw,20px)}
+  .pad{padding:clamp(10px,2.6vw,15px)}
   .muted{color:var(--ink-soft)}
   .tiny{font-size:.8rem}
 
@@ -91,18 +91,18 @@
   .empty .big{font-size:2rem;margin-bottom:8px}
   .empty .btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
 
-  .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
   .toolbar .spacer{flex:1 1 auto}
 
   /* progress bar */
-  .prog{display:flex;align-items:center;gap:10px;margin:0 0 14px}
+  .prog{display:flex;align-items:center;gap:10px;margin:0 0 9px}
   .prog-bar{flex:1;height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden;border:1px solid var(--line)}
   .prog-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--pri),var(--good));transition:width .35s}
   .prog-txt{font-size:.82rem;font-weight:800;color:var(--pri-deep);font-variant-numeric:tabular-nums;white-space:nowrap}
 
   /* itinerary */
   .spend-box{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-top:14px;box-shadow:0 8px 20px -18px var(--shadow-lg)}
-  .spend-title{font-weight:800;color:var(--pri-deep);margin-bottom:10px}
+  .spend-title{font-weight:800;color:var(--pri-deep);margin-bottom:7px}
   .spend-empty{color:var(--ink-soft);font-size:.85rem}
   .spend-tbl{width:100%;border-collapse:collapse;font-size:.9rem;table-layout:fixed}
   .spend-tbl th{text-align:left;font-size:.74rem;font-weight:800;color:var(--ink-soft);padding:4px 8px;border-bottom:1.5px solid var(--line)}
@@ -115,8 +115,8 @@
   .spend-tbl .st-total td{border-bottom:none;border-top:2px solid var(--line);font-weight:900;padding-top:10px}
   .spend-tbl .st-total td:first-child{color:var(--red)}
   .spend-tbl .st-total td:nth-child(2){color:var(--red);text-align:right;font-size:1.05rem;font-variant-numeric:tabular-nums}
-  .day{margin-bottom:14px;overflow:hidden}
-  .day .dhead{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--pri-soft)}
+  .day{margin-bottom:10px;overflow:hidden}
+  .day .dhead{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--line);background:var(--pri-soft)}
   .day .dnum{font-size:.68rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:var(--pri);border-radius:7px;padding:4px 8px}
   .day .demoji{font-size:1.2rem}
   .day .dtitle{font-weight:800;font-size:1.05rem;color:var(--pri-deep)}
@@ -143,7 +143,7 @@
   /* 分類太長會把中間那欄擠掉,限寬 + 超出用「…」 */
   .titem .cat{color:var(--pri-deep);font-weight:700;font-size:.82rem;min-width:0;max-width:7em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   @media(max-width:400px){
-    .titem{padding:10px 12px;gap:3px 8px}
+    .titem{padding:6px 12px;gap:1px 8px}   /* 只收窄左右,上下維持跟大螢幕一樣緊 */
     .titem .cc .bar{margin:0 5px}
     .titem .cat{max-width:4.5em}
   }
@@ -152,14 +152,14 @@
   .titem:not(.ed) [data-f]:empty{display:none}
 
   /* packing */
-  .listcard{margin-bottom:16px}
-  .pk-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.78rem;color:var(--ink-soft);margin:0 0 12px;align-items:center}
+  .listcard{margin-bottom:10px}
+  .pk-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.78rem;color:var(--ink-soft);margin:0 0 8px;align-items:center}
   .pk-legend span{white-space:nowrap}
   .dot{width:10px;height:10px;border-radius:50%;display:inline-block;vertical-align:-1px;margin-right:4px;border:1px solid rgba(0,0,0,.06)}
   .dot.d0{background:var(--surface-2)}.dot.d2{background:var(--red)}.dot.d1{background:var(--good)}.dot.d3{background:var(--ink-soft)}
-  .pk-sec{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden;background:var(--surface)}
+  .pk-sec{border:1px solid var(--line);border-radius:12px;margin-bottom:7px;overflow:hidden;background:var(--surface)}
   .pk-sec:last-child{margin-bottom:0}
-  .pk-head{display:flex;align-items:center;gap:8px;padding:12px 14px;cursor:pointer;font-weight:800;user-select:none;color:var(--pri-deep)}
+  .pk-head{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;font-weight:800;user-select:none;color:var(--pri-deep)}
   .pk-head:hover{background:var(--surface-2)}
   .pk-head .chev{margin-left:auto;transition:transform .2s;color:var(--ink-soft);font-size:.85rem}
   .pk-sec.open .pk-head .chev{transform:rotate(90deg)}
@@ -184,11 +184,11 @@
   .pk-additem:hover{border-color:var(--pri);color:var(--pri-deep)}
 
   /* memo */
-  .list-add{display:flex;gap:8px;margin:12px 0}
+  .list-add{display:flex;gap:8px;margin:8px 0}
   .list-add input{flex:1 1 auto;min-width:0;border:1.5px solid var(--line);background:var(--surface-2);border-radius:10px;padding:9px 12px;outline:0}
   .list-add input:focus{border-color:var(--pri);background:var(--surface)}
-  ul.li{list-style:none;margin:0;padding:0;display:grid;gap:7px}
-  ul.li li{display:flex;align-items:center;gap:11px;border:1px solid var(--line);border-radius:11px;padding:9px 12px;background:var(--surface)}
+  ul.li{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+  ul.li li{display:flex;align-items:center;gap:11px;border:1px solid var(--line);border-radius:11px;padding:7px 12px;background:var(--surface)}
   ul.li .cb{flex:0 0 auto;width:22px;height:22px;border-radius:7px;border:2px solid var(--line);cursor:pointer;display:grid;place-items:center;color:#fff}
   ul.li .cb.on{background:var(--good);border-color:var(--good)}
   ul.li .cb svg{width:13px;height:13px;opacity:0}
@@ -197,7 +197,7 @@
   ul.li li.done .lt{text-decoration:line-through;color:var(--ink-soft)}
 
   /* calculator */
-  .calc{margin-bottom:16px}
+  .calc{margin-bottom:10px}
   .calc h3{margin:0 0 3px;font-size:1.05rem;font-weight:800;color:var(--pri-deep);display:flex;align-items:center;gap:8px}
   .calc .desc{color:var(--ink-soft);font-size:.83rem;margin:0 0 14px}
 
@@ -211,12 +211,12 @@
   .th-row .del{background:none;border:0;color:var(--red);cursor:pointer;font-size:1rem;flex:0 0 auto;padding:0 4px}
   .th-add{width:100%;border:2px dashed var(--line);background:transparent;color:var(--ink-soft);border-radius:10px;padding:9px;font-weight:700;cursor:pointer;margin-top:2px}
   .th-add:hover{border-color:var(--pri);color:var(--pri-deep)}
-  .th-status{font-size:.92rem;line-height:1.9;margin-bottom:12px}
+  .th-status{font-size:.92rem;line-height:1.7;margin-bottom:8px}
   .th-status .reached{color:var(--good);font-weight:700}
   .th-status .pending{color:var(--ink-soft)}
   .th-status .next{color:var(--pri-deep);font-weight:800}
 
-  .calc-display{background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;text-align:right;margin-bottom:12px}
+  .calc-display{background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:10px 16px;text-align:right;margin-bottom:8px}
   .calc-expr{font-size:1rem;color:var(--ink-soft);min-height:22px;word-break:break-all;font-variant-numeric:tabular-nums;line-height:1.4}
   .calc-res{font-size:1.55rem;font-weight:900;color:var(--pri-deep);margin-top:6px;min-height:30px;font-variant-numeric:tabular-nums}
   .calc-res .nt{color:var(--good);font-size:1rem;font-weight:800}
@@ -253,7 +253,7 @@
   /* 刪除旅程放在最下面：本來擺右上角的紅 ✕ 太像「關閉視窗」,一按整趟就沒了 */
   .m-delrow{display:flex;justify-content:center;margin-top:14px}
   .m-delrow .tp-link{font-size:.82rem;padding:8px 14px}
-  .mfield{margin-bottom:12px}
+  .mfield{margin-bottom:9px}
   .mfield label{display:block;font-size:.76rem;font-weight:800;letter-spacing:.05em;color:var(--ink-soft);margin-bottom:5px}
   .mfield input,.mfield select{width:100%;border:1.5px solid var(--line);background:var(--surface-2);border-radius:10px;padding:10px 12px;outline:0;font-weight:600}
   .mfield input:focus,.mfield select:focus{border-color:var(--pri);background:var(--surface)}
@@ -348,8 +348,8 @@
 .trip-input:hover{background:var(--panel-soft)}
 .trip-input:focus{background:var(--surface);box-shadow:0 0 0 2px var(--pri)}
 .card{border-radius:22px}
-.pk-hint{font-size:.76rem;color:var(--ink-soft);margin:0 0 12px;line-height:1.5}
-.trip-head{position:sticky;top:var(--th2,58px);z-index:20;background:var(--page-bg);background-attachment:fixed;padding:6px 0 8px}
+.pk-hint{font-size:.76rem;color:var(--ink-soft);margin:0 0 8px;line-height:1.5}
+.trip-head{position:sticky;top:var(--th2,58px);z-index:20;background:var(--page-bg);background-attachment:fixed;padding:4px 0 6px}
 .trip-head .toolbar{margin-bottom:0;gap:8px;flex-wrap:nowrap}
 /* 天數那排縮小,擠到「總花費」旁邊。天數多就左右滑（沒有捲軸,右邊用漸層提示還有）
    左邊那兩顆(日程表/總花費)固定大小,不會被擠成一個字一行 */
@@ -362,9 +362,9 @@
   mask-image:linear-gradient(to right,#000 0,#000 calc(100% - 24px),transparent 100%)}
 .btn.ic2{flex:0 0 auto;width:34px;padding:0;justify-content:center;font-size:.95rem}
 #itinView{padding-top:8px}
-.day{margin-bottom:16px}
+.day{margin-bottom:10px}
 .day:last-child{margin-bottom:4px}
-.tabpanel{padding-top:12px}
+.tabpanel{padding-top:8px}
 #trip{padding-top:0}
 .dnum2{flex:0 0 auto;width:28px;height:28px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--pri-deep);font-weight:800;font-size:.8rem;font-variant-numeric:tabular-nums;cursor:pointer;transition:.14s}
 .dnum2:hover{border-color:var(--pri)}
@@ -429,7 +429,7 @@
 .ph-bar2{display:flex;gap:6px;align-items:center}
 #phStat.warn{color:var(--red);font-weight:800}
 #phDelSel:disabled{opacity:.45;cursor:default}
-.ph-empty{grid-column:1/-1;text-align:center;padding:22px 12px;border:1.5px dashed var(--line);border-radius:14px;color:var(--ink-soft);font-size:.86rem;line-height:1.7}
+.ph-empty{grid-column:1/-1;text-align:center;padding:15px 12px;border:1.5px dashed var(--line);border-radius:14px;color:var(--ink-soft);font-size:.86rem;line-height:1.7}
 .ph-view{width:100%;max-width:680px;display:flex;flex-direction:column;gap:10px}
 .ph-stage{position:relative;display:flex;align-items:center;justify-content:center}
 .ph-stage img{max-width:100%;max-height:72vh;border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.45);background:#0b1420}
@@ -516,7 +516,7 @@
 
 /* ===== 換算工具（三合一） ===== */
 .tools-top{position:sticky;top:var(--th,58px);z-index:20;background:var(--page-bg);background-attachment:fixed;padding:4px 0 10px;max-width:660px}
-.cvt-card{padding:10px 12px 10px 16px;margin-bottom:10px}
+.cvt-card{padding:7px 12px 7px 16px;margin-bottom:7px}
 .cvt-card.on{padding-bottom:14px}
 .cvt-hd{display:flex;align-items:center;gap:10px;margin:0}
 .cvt-hd .l{font-size:.72rem;font-weight:800;letter-spacing:.08em;color:var(--ink-soft);white-space:nowrap}
@@ -528,7 +528,7 @@
 .cvt-card.on .cvt-edit{background:var(--pri);border-color:var(--pri);color:#fff}
 .cvt-card:not(.on) .cvt4,.cvt-card:not(.on) .cvt-note{display:none}
 .cvt-note{font-size:.7rem;line-height:1.6;color:var(--ink-soft);margin:9px 2px 0}
-.cvt-card.on .cvt-hd{margin-bottom:10px}
+.cvt-card.on .cvt-hd{margin-bottom:7px}
 .cvt4{display:grid;grid-template-columns:1fr 1.1fr 1fr 1.1fr;gap:8px;align-items:stretch}
 .cvt4 input{min-width:0;border:1.5px solid var(--line);background:var(--surface-2);border-radius:11px;padding:11px 12px;font-weight:800;font-variant-numeric:tabular-nums;text-align:right;outline:0;font-size:1.05rem}
 .cvt4 input:focus{border-color:var(--pri);background:var(--surface)}
@@ -556,13 +556,13 @@
 
 /* ===== 分帳 ===== */
 .mem-chips{display:flex;flex-wrap:wrap;gap:8px}
-.mem-chip{display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--panel-line);background:var(--panel-soft);border-radius:999px;padding:6px 13px;font-weight:700;font-size:.88rem;color:var(--ink)}
+.mem-chip{display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--panel-line);background:var(--panel-soft);border-radius:999px;padding:4px 12px;font-weight:700;font-size:.88rem;color:var(--ink)}
 .mem-chip .av{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:.7rem;font-weight:900;color:#fff;flex:0 0 auto}
 .mem-chip .x{border:0;background:none;color:var(--red);font-weight:900;cursor:pointer;font-size:.82rem;padding:0 0 0 2px}
 .mem-chip.edit{cursor:pointer}
 .mem-chip.edit:hover{border-color:var(--pri)}
 .mem-empty{color:var(--ink-soft);font-size:.85rem;line-height:1.7}
-.xp{display:flex;align-items:center;gap:12px;padding:12px 10px;border-top:1px solid var(--gsep);border-radius:13px;cursor:pointer;transition:.14s}
+.xp{display:flex;align-items:center;gap:12px;padding:8px 10px;border-top:1px solid var(--gsep);border-radius:13px;cursor:pointer;transition:.14s}
 .xp:first-child{border-top:0}
 .xp:hover{background:var(--panel-soft)}
 .xp .av{width:34px;height:34px;flex:0 0 auto;border-radius:12px;display:grid;place-items:center;font-size:.78rem;font-weight:900;color:#fff}
@@ -592,8 +592,8 @@
 .sp-check{margin-top:8px;font-size:.82rem;font-weight:800;font-variant-numeric:tabular-nums}
 .sp-check.ok{color:var(--good)}
 .sp-check.bad{color:var(--red)}
-.settle-net{display:grid;gap:6px;margin-bottom:14px}
-.snet{display:flex;align-items:center;gap:10px;background:var(--panel-soft);border:1px solid var(--panel-line);border-radius:12px;padding:9px 13px}
+.settle-net{display:grid;gap:6px;margin-bottom:9px}
+.snet{display:flex;align-items:center;gap:10px;background:var(--panel-soft);border:1px solid var(--panel-line);border-radius:12px;padding:7px 13px}
 .snet .av{width:26px;height:26px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;font-size:.7rem;font-weight:900;color:#fff}
 .snet .nm{flex:1;min-width:0;font-weight:800;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .snet .pd{font-size:.74rem;color:var(--ink-soft);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -680,7 +680,7 @@ footer{position:relative;z-index:1}
     <!-- ===== 行李 ===== -->
     <section class="tabpanel" id="lists">
       <div class="card pad listcard" style="margin-bottom:0">
-        <div class="s-head" style="margin:0 0 10px"><h2>🧳 行李清單</h2><span class="spacer"></span>
+        <div class="s-head" style="margin:0 0 7px"><h2>🧳 行李清單</h2><span class="spacer"></span>
           <button class="btn ghost sm" id="packEditBtn" title="編輯">✏️</button>
           <button class="btn ghost sm" id="packClear" title="清除選取">🔃</button>
           <button class="btn ghost sm ic2" id="packExpand" title="展開 / 收合">⇕</button></div>
@@ -704,7 +704,7 @@ footer{position:relative;z-index:1}
       </div>
 
       <div class="card pad listcard" style="margin-bottom:0">
-        <div class="s-head" style="margin:0 0 10px"><h2>📷 照片</h2><span class="spacer"></span>
+        <div class="s-head" style="margin:0 0 7px"><h2>📷 照片</h2><span class="spacer"></span>
           <span class="tiny muted" id="phStat" title="照片存在瀏覽器裡,整個 app 的資料上限約 5MB"></span>
           <span class="ph-bar2" id="phEditBar" style="display:none">
             <button class="btn ghost sm" id="phSelAll">全選</button>
@@ -719,13 +719,13 @@ footer{position:relative;z-index:1}
     <!-- ===== 分帳 ===== -->
     <section class="tabpanel" id="split">
       <div class="card pad listcard">
-        <div class="s-head" style="margin:0 0 10px"><h2>💸 結算</h2><span class="spacer"></span>
+        <div class="s-head" style="margin:0 0 7px"><h2>💸 結算</h2><span class="spacer"></span>
           <span class="tiny muted" id="settleCur"></span></div>
         <div id="settleView"></div>
       </div>
 
       <div class="card pad listcard">
-        <div class="s-head" style="margin:0 0 10px"><h2>🧾 帳目</h2><span class="spacer"></span>
+        <div class="s-head" style="margin:0 0 7px"><h2>🧾 帳目</h2><span class="spacer"></span>
           <span class="tiny muted" id="spStat"></span>
           <button class="btn sm" id="expAdd">＋ 記一筆</button></div>
         <div id="expList"></div>
@@ -733,7 +733,7 @@ footer{position:relative;z-index:1}
 
       <!-- 成員放最後面：設定性質的東西,不用每次都先看到 -->
       <div class="card pad listcard" style="margin-bottom:0">
-        <div class="s-head" style="margin:0 0 10px"><h2>👥 同行成員</h2><span class="spacer"></span>
+        <div class="s-head" style="margin:0 0 7px"><h2>👥 同行成員</h2><span class="spacer"></span>
           <button class="btn ghost sm ic2" id="memEditBtn" title="編輯">✏️</button>
           <button class="btn sm good" id="memAdd">＋ 成員</button></div>
         <div class="mem-chips" id="memChips"></div>
