@@ -123,16 +123,30 @@
   .day .ddate{color:var(--ink-soft);font-size:.82rem;font-weight:700}
   .day .dhead .spacer{flex:1}
   /* 一筆行程：時間在左邊,右邊由上往下 行程 / 備註 / 分類 | 花費 */
-  .titem{display:grid;grid-template-columns:50px minmax(0,1fr) auto;gap:3px 10px;align-items:start;padding:10px 16px;border-top:1px dashed var(--line)}
+  /* 三欄：時間 | 行程說明(+備註) | 分類-花費
+     分類花費本來自己佔一整列(grid-row:3),每筆行程吃掉三行高度,右邊一大片空白浪費掉,
+     整個日程表被拉得很長。移到右邊那欄跟標題同一行,一筆少一行。 */
+  .titem{display:grid;grid-template-columns:50px minmax(0,1fr) auto;gap:1px 10px;align-items:start;padding:6px 16px;border-top:1px dashed var(--line)}
+  .titem.ed{grid-template-columns:50px minmax(0,1fr) auto auto}   /* 編輯模式多一欄放 ✕ */
   .titem:first-of-type{border-top:0}
   .titem .time{grid-column:1;grid-row:1;font-weight:800;color:var(--pri);font-variant-numeric:tabular-nums;font-size:.9rem}
-  .titem .place{grid-column:2;grid-row:1;font-weight:700;min-width:0;word-break:break-word}
-  .titem .acts{grid-column:3;grid-row:1;display:flex;gap:4px;opacity:.6;justify-self:end}
-  .titem .note{grid-column:2;grid-row:2;color:var(--ink-soft);font-size:.85rem;min-width:0;word-break:break-word}
-  .titem .cc{grid-column:2;grid-row:3;display:flex;align-items:baseline;gap:0;min-width:0;flex-wrap:wrap}
-  .titem .cc .bar{margin:0 8px;color:var(--ink-soft);opacity:.45}
+  .titem .place{grid-column:2;grid-row:1;font-weight:700;min-width:0;word-break:break-word;line-height:1.4}
+  .titem .note{grid-column:2;grid-row:2;color:var(--ink-soft);font-size:.85rem;min-width:0;word-break:break-word;line-height:1.35}
+  /* line-height 要壓住：分類欄的 emoji 字身很高,不壓的話整列會被它撐開,
+     沒有備註的那種一行行程也縮不下來 */
+  .titem .cc{grid-column:3;grid-row:1;display:flex;align-items:baseline;gap:0;line-height:1.4;
+    justify-self:end;align-self:start;flex-wrap:nowrap;white-space:nowrap;text-align:right}
+  .titem .acts{grid-column:4;grid-row:1;display:flex;gap:4px;opacity:.6;justify-self:end}
+  .titem:not(.ed) .acts{display:none}          /* 不是編輯模式就別佔一欄 */
+  .titem .cc .bar{margin:0 7px;color:var(--ink-soft);opacity:.45}
   .titem .cost{font-weight:800;color:var(--pri-deep);font-variant-numeric:tabular-nums;font-size:.84rem;white-space:nowrap}
-  .titem .cat{color:var(--pri-deep);font-weight:700;font-size:.82rem;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  /* 分類太長會把中間那欄擠掉,限寬 + 超出用「…」 */
+  .titem .cat{color:var(--pri-deep);font-weight:700;font-size:.82rem;min-width:0;max-width:7em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  @media(max-width:400px){
+    .titem{padding:10px 12px;gap:3px 8px}
+    .titem .cc .bar{margin:0 5px}
+    .titem .cat{max-width:4.5em}
+  }
   .titem:hover .acts{opacity:1}
   /* 沒填的欄位不佔位置（編輯模式才會用淡字提示） */
   .titem:not(.ed) [data-f]:empty{display:none}
